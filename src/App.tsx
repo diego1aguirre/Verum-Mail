@@ -4,6 +4,7 @@ function App() {
   const [subject, setSubject] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [message, setMessage] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -33,9 +34,11 @@ function App() {
       formData.append("subject", subject.trim());
       formData.append("date", date);
       formData.append("time", time);
+      formData.append("message", message.trim());
       formData.append("pdf", pdfFile);
 
-      const response = await fetch("http://localhost:4000/send-email", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
+      const response = await fetch(`${apiUrl}/send-email`, {
         method: "POST",
         body: formData,
       });
@@ -53,6 +56,7 @@ function App() {
       setSubject("");
       setDate("");
       setTime("");
+      setMessage("");
       setPdfFile(null);
 
       const pdfInput = form.elements.namedItem("pdf") as HTMLInputElement | null;
@@ -93,6 +97,17 @@ function App() {
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
                 placeholder="e.g. Project kickoff meeting"
+              />
+            </label>
+
+            <label className="field">
+              <span>Email body</span>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Leave empty to use the default committee message, or type your own email text for testing."
+                rows={5}
+                className="field-input"
               />
             </label>
 

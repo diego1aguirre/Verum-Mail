@@ -118,7 +118,8 @@ body {
 .field input[type="text"],
 .field input[type="date"],
 .field input[type="time"],
-.field input[type="file"] {
+.field input[type="file"],
+.field textarea {
   border-radius: 0.85rem;
   border: 1px solid var(--fourth-color);
   padding: 0.65rem 0.75rem;
@@ -130,13 +131,20 @@ body {
     border-color 160ms ease,
     box-shadow 160ms ease,
     background-color 160ms ease;
+  font-family: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 5rem;
 }
 
 .field input[type="text"]::placeholder {
   color: var(--third-color);
 }
 
-.field input:focus {
+.field input:focus,
+.field textarea:focus {
   border-color: var(--main-color);
   box-shadow: 0 0 0 1px rgba(244, 130, 32, 0.7);
   background: #fff7ec;

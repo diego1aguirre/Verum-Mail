@@ -43,14 +43,14 @@ if (!EMAIL_USER || !EMAIL_PASS) {
   );
 }
 
-// Allow requests from any localhost dev port (5173, 5174, etc.)
+// CORS: localhost in dev, or set FRONTEND_URL in production (e.g. https://your-app.vercel.app)
+const FRONTEND_URL = process.env.FRONTEND_URL;
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (origin.startsWith("http://localhost")) {
-        return callback(null, true);
-      }
+      if (origin.startsWith("http://localhost")) return callback(null, true);
+      if (FRONTEND_URL && origin === FRONTEND_URL) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
   })
@@ -58,7 +58,7 @@ app.use(
 
 app.post("/send-email", upload.single("pdf"), async (req, res) => {
   try {
-    const { subject, date, time } = req.body;
+    const { subject, date, time, message: customMessage } = req.body;
     const file = req.file;
 
     if (!subject || !date || !time || !file) {
@@ -108,10 +108,22 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
     const uid = `${Date.now()}@verum-mail`;
 
     const fullTitle = `Comité de Calificación - ${subject}`;
-    const spanishBody =
+    const defaultBody =
       `Estimados miembros del comité,\n\n` +
       `Los estamos convocando el próximo martes ${dayOfMonth} de ${monthName} a las ${formattedTime} ` +
       `con la finalidad de revisar las calificaciones corporativas de ${subject}.`;
+    const emailBody =
+      customMessage && String(customMessage).trim()
+        ? String(customMessage).trim()
+        : defaultBody;
+    const detailsBlock =
+      `\n\nDetalles de la reunión:\n` +
+      `Asunto: ${fullTitle}\n` +
+      `Fecha: ${date}\n` +
+      `Hora: ${formattedTime}`;
+    const textForEmail = customMessage && String(customMessage).trim()
+      ? emailBody + detailsBlock
+      : `${defaultBody}${detailsBlock}`;
 
     const icsContent = [
       "BEGIN:VCALENDAR",
@@ -125,7 +137,7 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
       `DTSTART;TZID=${TIMEZONE}:${dtStartLocal}`,
       `DTEND;TZID=${TIMEZONE}:${dtEndLocal}`,
       `SUMMARY:${fullTitle}`,
-      `DESCRIPTION:${spanishBody.replace(/\n/g, "\\n")}`,
+      `DESCRIPTION:${emailBody.replace(/\n/g, "\\n")}`,
       `ORGANIZER;CN=Verum Committee:mailto:${EMAIL_USER}`,
       `ATTENDEE;CN=Diego Aguirre;ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${EMAIL_TO}`,
       "END:VEVENT",
@@ -145,12 +157,7 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
       from: EMAIL_USER,
       to: EMAIL_TO,
       subject: fullTitle,
-      text:
-        `${spanishBody}\n\n` +
-        `Detalles de la reunión:\n` +
-        `Asunto: ${fullTitle}\n` +
-        `Fecha: ${date}\n` +
-        `Hora: ${formattedTime}`,
+      text: textForEmail,
       icalEvent: {
         filename: "invite.ics",
         method: "REQUEST",
