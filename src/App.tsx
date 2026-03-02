@@ -37,7 +37,7 @@ function App() {
       formData.append("message", message.trim());
       formData.append("pdf", pdfFile);
 
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
+      const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
       const response = await fetch(`${apiUrl}/send-email`, {
         method: "POST",
         body: formData,
