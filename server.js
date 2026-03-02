@@ -12,7 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 const PORT = process.env.PORT || 4000;
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
-const EMAIL_TO = "diego.aguirre@verum.mx";
+const EMAIL_TO = "diego1992aguirre@gmail.com";
 const TIMEZONE = "America/Mexico_City";
 
 function formatLocalDateForICS(date) {
@@ -43,9 +43,16 @@ if (!EMAIL_USER || !EMAIL_PASS) {
   );
 }
 
+// Allow requests from any localhost dev port (5173, 5174, etc.)
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (origin.startsWith("http://localhost")) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
   })
 );
 
@@ -65,14 +72,46 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
         .status(500)
         .json({ error: "Email credentials are not configured on the server." });
     }
-
     const startLocal = new Date(`${date}T${time}:00`);
     const endLocal = new Date(startLocal.getTime() + 60 * 60 * 1000);
+
+    const dayOfMonth = startLocal.getDate();
+    const monthIndex = startLocal.getMonth();
+    const monthsEs = [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre",
+    ];
+    const monthName = monthsEs[monthIndex] ?? "";
+
+    const [hourStr = "0", minuteStr = "00"] = time.split(":");
+    let hourNum = Number(hourStr);
+    if (Number.isNaN(hourNum)) hourNum = 0;
+    const isPM = hourNum >= 12;
+    let hour12 = hourNum % 12;
+    if (hour12 === 0) hour12 = 12;
+    const period = isPM ? "p.m." : "a.m.";
+    const formattedTime = `${hour12}:${minuteStr} ${period}`;
 
     const dtStartLocal = formatLocalDateForICS(startLocal);
     const dtEndLocal = formatLocalDateForICS(endLocal);
     const dtStamp = formatUtcDateForICS(new Date());
     const uid = `${Date.now()}@verum-mail`;
+
+    const fullTitle = `Comité de Calificación - ${subject}`;
+    const spanishBody =
+      `Estimados miembros del comité,\n\n` +
+      `Los estamos convocando el próximo martes ${dayOfMonth} de ${monthName} a las ${formattedTime} ` +
+      `con la finalidad de revisar las calificaciones corporativas de ${subject}.`;
 
     const icsContent = [
       "BEGIN:VCALENDAR",
@@ -85,8 +124,8 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
       `DTSTAMP:${dtStamp}`,
       `DTSTART;TZID=${TIMEZONE}:${dtStartLocal}`,
       `DTEND;TZID=${TIMEZONE}:${dtEndLocal}`,
-      `SUMMARY:Meeting: ${subject}`,
-      `DESCRIPTION:Meeting scheduled via Verum Mail.`,
+      `SUMMARY:${fullTitle}`,
+      `DESCRIPTION:${spanishBody.replace(/\n/g, "\\n")}`,
       `ORGANIZER;CN=Verum Committee:mailto:${EMAIL_USER}`,
       `ATTENDEE;CN=Diego Aguirre;ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${EMAIL_TO}`,
       "END:VEVENT",
@@ -105,8 +144,13 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
     const mailOptions = {
       from: EMAIL_USER,
       to: EMAIL_TO,
-      subject: `${subject}`,
-      text: `You have a meeting scheduled.\n\nSubject: ${subject}\nDate: ${date}\nTime: ${time}`,
+      subject: fullTitle,
+      text:
+        `${spanishBody}\n\n` +
+        `Detalles de la reunión:\n` +
+        `Asunto: ${fullTitle}\n` +
+        `Fecha: ${date}\n` +
+        `Hora: ${formattedTime}`,
       icalEvent: {
         filename: "invite.ics",
         method: "REQUEST",

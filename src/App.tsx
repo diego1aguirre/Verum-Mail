@@ -16,6 +16,7 @@ function App() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const form = event.currentTarget;
 
     if (!subject.trim() || !date || !time || !pdfFile) {
       setError("Please fill in all fields and attach a PDF.");
@@ -39,9 +40,7 @@ function App() {
         body: formData,
       });
 
-      const data = await response
-        .json()
-        .catch(() => ({ success: response.ok }));
+      const data = await response.json().catch(() => ({ success: response.ok }));
 
       if (!response.ok || !data?.success) {
         const message =
@@ -56,9 +55,7 @@ function App() {
       setTime("");
       setPdfFile(null);
 
-      const pdfInput = event.currentTarget.elements.namedItem(
-        "pdf"
-      ) as HTMLInputElement | null;
+      const pdfInput = form.elements.namedItem("pdf") as HTMLInputElement | null;
       if (pdfInput) {
         pdfInput.value = "";
       }
