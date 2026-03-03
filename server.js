@@ -58,7 +58,7 @@ app.use(
 
 app.post("/send-email", upload.single("pdf"), async (req, res) => {
   try {
-    const { subject, date, time, message: customMessage } = req.body;
+    const { subject, date, time, message: customMessage, recipients } = req.body;
     const file = req.file;
 
     if (!subject || !date || !time || !file) {
@@ -146,6 +146,23 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
       "<p>Saludos,</p>";
     const htmlForEmail = `${baseHtmlMain}${customHtml}${teamsHtml}`;
 
+    let toList: string[] = [];
+    if (typeof recipients === "string") {
+      try {
+        const parsed = JSON.parse(recipients);
+        if (Array.isArray(parsed)) {
+          toList = parsed.filter((v) => typeof v === "string");
+        }
+      } catch {
+        // ignore
+      }
+    } else if (Array.isArray(recipients)) {
+      toList = recipients.filter((v) => typeof v === "string");
+    }
+    if (toList.length === 0) {
+      toList = [EMAIL_TO];
+    }
+
     const icsContent = [
       "BEGIN:VCALENDAR",
       "PRODID:-//Verum Mail//EN",
@@ -176,7 +193,7 @@ app.post("/send-email", upload.single("pdf"), async (req, res) => {
 
     const mailOptions = {
       from: EMAIL_USER,
-      to: EMAIL_TO,
+      to: toList.join(", "),
       subject: fullTitle,
       text: textForEmail,
       html: htmlForEmail,

@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
-    const { subject, date, time, message: customMessage, pdfBase64, pdfFilename } = body;
+    const { subject, date, time, message: customMessage, pdfBase64, pdfFilename, recipients } = body;
 
     if (!subject || !date || !time || !pdfBase64 || !pdfFilename) {
       return res
@@ -133,6 +133,11 @@ export default async function handler(req, res) {
       "<p>Saludos,</p>";
     const htmlForEmail = `${baseHtmlMain}${customHtml}${teamsHtml}`;
 
+    const toList =
+      Array.isArray(recipients) && recipients.length
+        ? recipients
+        : [EMAIL_TO];
+
     const icsContent = [
       "BEGIN:VCALENDAR",
       "PRODID:-//Verum Mail//EN",
@@ -162,7 +167,7 @@ export default async function handler(req, res) {
 
     const mailOptions = {
       from: EMAIL_USER,
-      to: EMAIL_TO,
+      to: toList.join(", "),
       subject: fullTitle,
       text: textForEmail,
       html: htmlForEmail,

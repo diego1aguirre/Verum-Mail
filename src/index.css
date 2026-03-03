@@ -163,6 +163,63 @@ body {
   gap: 0.9rem;
 }
 
+.recipient-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.recipient-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(187, 189, 191, 0.9);
+}
+
+.recipient-remove {
+  border: none;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.icon-gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--third-color);
+}
+
+.settings-button {
+  border: none;
+  background: transparent;
+  padding: 0.35rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+
+.settings-button:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.settings-button:active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 .hint {
   margin: -0.3rem 0 0.4rem;
   font-size: 0.8rem;
