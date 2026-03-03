@@ -106,25 +106,32 @@ export default async function handler(req, res) {
 
     const fullTitle = `Comité de Calificación - ${subject}`;
     const trimmedCustom = customMessage && String(customMessage).trim();
-    const baseTemplateText =
+
+    const baseTemplateTextMain =
       "Estimados miembros del comité\n\n" +
       `Los estamos convocando el próximo ${longDateEs}, a las ${formattedTime} ` +
-      `con la finalidad de revisar la calificación de ${subject}.\n\n` +
-      "https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z\n" +
+      `con la finalidad de revisar la calificación de ${subject}.`;
+    const customBlock = trimmedCustom ? `\n\n${String(trimmedCustom)}` : "";
+    const teamsText =
+      "\n\nReunión de Microsoft Teams\n" +
+      "Unirse: https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z\n" +
       "Saludos,";
-    const textForEmail = trimmedCustom ? String(trimmedCustom) : baseTemplateText;
+    const textForEmail = `${baseTemplateTextMain}${customBlock}${teamsText}`;
 
-    const baseTemplateHtml =
+    const baseHtmlMain =
       "<p>Estimados miembros del comité</p>" +
       `<p>Los estamos convocando el próximo <strong>${longDateEs}</strong>, a las <strong>${formattedTime}</strong> ` +
-      `con la finalidad de revisar la calificación de ${subject}.</p>` +
-      `<p><a href="https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z">` +
+      `con la finalidad de revisar la calificación de ${subject}.</p>`;
+    const customHtml = trimmedCustom
+      ? `<p>${String(trimmedCustom).replace(/\n/g, "<br />")}</p>`
+      : "";
+    const teamsHtml =
+      `<p style="font-size:15pt;font-weight:bold;">Reunión de Microsoft Teams<br />` +
+      `Unirse: <a href="https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z">` +
       "https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z" +
       "</a></p>" +
       "<p>Saludos,</p>";
-    const htmlForEmail = trimmedCustom
-      ? `<p>${String(trimmedCustom).replace(/\n/g, "<br />")}</p>`
-      : baseTemplateHtml;
+    const htmlForEmail = `${baseHtmlMain}${customHtml}${teamsHtml}`;
 
     const icsContent = [
       "BEGIN:VCALENDAR",
