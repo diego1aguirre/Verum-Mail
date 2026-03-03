@@ -177,6 +177,16 @@ body {
   border: 1px solid rgba(248, 113, 113, 0.6);
 }
 
+.success {
+  margin: 0.15rem 0 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(8, 166, 152, 0.2);
+  color: #0d9488;
+  font-size: 0.82rem;
+  border: 1px solid rgba(8, 166, 152, 0.5);
+}
+
 .primary-button {
   margin-top: 0.25rem;
   align-self: flex-start;

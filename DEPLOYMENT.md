@@ -1,15 +1,33 @@
 # Deploying Verum Mail
 
-The app has two parts:
+## Option A: All on Vercel (recommended, one deploy)
 
-1. **Frontend** (React + Vite) – the form users see
-2. **Backend** (Node + Express) – sends email and calendar invites; must run on a server with your env vars
+Frontend and email API run on the same Vercel project. No second host, no cold starts from a sleeping server.
 
-Deploy them separately, then connect them with environment variables.
+1. Push your code to GitHub (including the `api/` folder).
+2. In [Vercel](https://vercel.com) → **New Project** → Import `Verum-Mail`.
+3. Keep **Framework**: Vite, **Build Command**: `npm run build` (or `vite build`), **Output Directory**: `dist`.
+4. In **Environment Variables**, add (do **not** add `VITE_API_URL`; leave it unset so the app uses the built-in API):
+   - **Name:** `EMAIL_USER` → **Value:** your Gmail (e.g. `comite.verum@gmail.com`)
+   - **Name:** `EMAIL_PASS` → **Value:** your Gmail app password
+5. Deploy. The site will call `/api/send-email` on the same domain; emails will work.
+
+**Local dev:** Run `npm run server` for the Express backend and `npm run dev` for the frontend. Set `VITE_API_URL=http://localhost:4000` in a `.env` file if you want the app to use the local server instead of `/api/send-email`.
 
 ---
 
-## 1. Deploy the backend (Node server)
+## Option B: Frontend on Vercel + backend elsewhere (Render, Railway, etc.)
+
+The app has two parts:
+
+1. **Frontend** (React + Vite) – the form users see
+2. **Backend** (Node + Express in `server.js`) – sends email; run on Render/Railway/Fly and set `VITE_API_URL` on Vercel to that URL.
+
+Deploy the backend first, then the frontend with `VITE_API_URL` set.
+
+---
+
+## 1. Deploy the backend (Node server) — only for Option B
 
 Host the **whole project** (or at least `server.js` + `package.json` + `node_modules` from install) on a service that runs Node.js. Do **not** commit `.env`; set the same values in the host’s environment.
 

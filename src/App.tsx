@@ -30,18 +30,45 @@ function App() {
     setIsSending(true);
 
     try {
-      const formData = new FormData();
-      formData.append("subject", subject.trim());
-      formData.append("date", date);
-      formData.append("time", time);
-      formData.append("message", message.trim());
-      formData.append("pdf", pdfFile);
+      const apiBase = import.meta.env.VITE_API_URL ?? "";
+      const useVercelApi = !apiBase;
 
-      const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
-      const response = await fetch(`${apiUrl}/send-email`, {
-        method: "POST",
-        body: formData,
-      });
+      let response: Response;
+      if (useVercelApi) {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const base64 = dataUrl.split(",")[1] ?? "";
+            resolve(base64);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(pdfFile);
+        });
+        response = await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject: subject.trim(),
+            date,
+            time,
+            message: message.trim(),
+            pdfBase64: base64,
+            pdfFilename: pdfFile.name,
+          }),
+        });
+      } else {
+        const formData = new FormData();
+        formData.append("subject", subject.trim());
+        formData.append("date", date);
+        formData.append("time", time);
+        formData.append("message", message.trim());
+        formData.append("pdf", pdfFile);
+        response = await fetch(`${apiBase}/send-email`, {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       const data = await response.json().catch(() => ({ success: response.ok }));
 
