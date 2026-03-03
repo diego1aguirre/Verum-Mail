@@ -1,5 +1,45 @@
 import React, { useState } from "react";
 
+/** Subject = everything before the first "_" in the filename (e.g. "Actinver Fiduciario_Presentación...") */
+function subjectFromFilename(filename: string): string {
+  const base = filename.replace(/\.pdf$/i, "");
+  const idx = base.indexOf("_");
+  if (idx === -1) return base.trim();
+  return base.slice(0, idx).trim();
+}
+
+/** Month names (Spanish + English) for date parsing */
+const MONTHS: Record<string, number> = {
+  ene: 1, jan: 1, feb: 2, mar: 3, abr: 4, apr: 4, may: 5, jun: 6,
+  jul: 7, ago: 8, aug: 8, sep: 9, oct: 10, nov: 11, dic: 12, dec: 12,
+};
+
+/** Parse date from filename: "25.Oct.2019" or "Feb.23.2026" → yyyy-mm-dd */
+function dateFromFilename(filename: string): string {
+  const base = filename.replace(/\.pdf$/i, "");
+  // DD.Mon.YYYY (e.g. 25.Oct.2019)
+  const ddm = base.match(/(\d{1,2})\.(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic|Jan|Apr|Aug|Dec)\.(\d{4})/i);
+  if (ddm) {
+    const day = parseInt(ddm[1], 10);
+    const month = MONTHS[ddm[2].toLowerCase().slice(0, 3)];
+    const year = parseInt(ddm[3], 10);
+    if (month && day >= 1 && day <= 31) {
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+  // Mon.DD.YYYY (e.g. Feb.23.2026)
+  const mdy = base.match(/(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic|Jan|Apr|Aug|Dec)\.(\d{1,2})\.(\d{4})/i);
+  if (mdy) {
+    const month = MONTHS[mdy[1].toLowerCase().slice(0, 3)];
+    const day = parseInt(mdy[2], 10);
+    const year = parseInt(mdy[3], 10);
+    if (month && day >= 1 && day <= 31) {
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+  return "";
+}
+
 function App() {
   const [subject, setSubject] = useState("");
   const [date, setDate] = useState("");
@@ -13,6 +53,13 @@ function App() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setPdfFile(file);
+    if (file) {
+      const name = file.name;
+      const parsedSubject = subjectFromFilename(name);
+      const parsedDate = dateFromFilename(name);
+      if (parsedSubject) setSubject(parsedSubject);
+      if (parsedDate) setDate(parsedDate);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
