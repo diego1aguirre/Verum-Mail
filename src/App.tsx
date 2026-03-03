@@ -165,6 +165,22 @@ function App() {
 
           <form onSubmit={handleSubmit} className="form">
             <label className="field">
+              <span>PDF attachment</span>
+              <input
+                type="file"
+                name="pdf"
+                accept="application/pdf,.pdf"
+                onChange={handleFileChange}
+              />
+            </label>
+
+            {pdfFile && (
+              <p className="hint">
+                Selected file: <strong>{pdfFile.name}</strong>
+              </p>
+            )}
+
+            <label className="field">
               <span>Subject</span>
               <input
                 type="text"
@@ -204,23 +220,6 @@ function App() {
                 />
               </label>
             </div>
-
-            <label className="field">
-              <span>PDF attachment</span>
-              <input
-                type="file"
-                name="pdf"
-                accept="application/pdf,.pdf"
-                onChange={handleFileChange}
-              />
-              <small>Only PDF files are accepted.</small>
-            </label>
-
-            {pdfFile && (
-              <p className="hint">
-                Selected file: <strong>{pdfFile.name}</strong>
-              </p>
-            )}
 
             {error && <p className="error">{error}</p>}
             {success && <p className="success">{success}</p>}

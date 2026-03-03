@@ -64,10 +64,31 @@ export default async function handler(req, res) {
     const dayOfMonth = startLocal.getDate();
     const monthIndex = startLocal.getMonth();
     const monthsEs = [
-      "enero", "febrero", "marzo", "abril", "mayo", "junio",
-      "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre",
+    ];
+    const daysEs = [
+      "domingo",
+      "lunes",
+      "martes",
+      "miércoles",
+      "jueves",
+      "viernes",
+      "sábado",
     ];
     const monthName = monthsEs[monthIndex] ?? "";
+    const weekdayName = daysEs[startLocal.getDay()] ?? "";
+    const longDateEs = `${weekdayName} ${dayOfMonth} de ${monthName} de ${startLocal.getFullYear()}`;
 
     const [hourStr = "0", minuteStr = "00"] = time.split(":");
     let hourNum = Number(hourStr);
@@ -84,23 +105,26 @@ export default async function handler(req, res) {
     const uid = `${Date.now()}@verum-mail`;
 
     const fullTitle = `Comité de Calificación - ${subject}`;
-    const defaultBody =
-      `Estimados miembros del comité,\n\n` +
-      `Los estamos convocando el próximo martes ${dayOfMonth} de ${monthName} a las ${formattedTime} ` +
-      `con la finalidad de revisar las calificaciones corporativas de ${subject}.`;
-    const emailBody =
-      customMessage && String(customMessage).trim()
-        ? String(customMessage).trim()
-        : defaultBody;
-    const detailsBlock =
-      `\n\nDetalles de la reunión:\n` +
-      `Asunto: ${fullTitle}\n` +
-      `Fecha: ${date}\n` +
-      `Hora: ${formattedTime}`;
-    const textForEmail =
-      customMessage && String(customMessage).trim()
-        ? emailBody + detailsBlock
-        : `${defaultBody}${detailsBlock}`;
+    const trimmedCustom = customMessage && String(customMessage).trim();
+    const baseTemplateText =
+      "Estimados miembros del comité\n\n" +
+      `Los estamos convocando el próximo ${longDateEs}, a las ${formattedTime} ` +
+      `con la finalidad de revisar la calificación de ${subject}.\n\n` +
+      "https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z\n" +
+      "Saludos,";
+    const textForEmail = trimmedCustom ? String(trimmedCustom) : baseTemplateText;
+
+    const baseTemplateHtml =
+      "<p>Estimados miembros del comité</p>" +
+      `<p>Los estamos convocando el próximo <strong>${longDateEs}</strong>, a las <strong>${formattedTime}</strong> ` +
+      `con la finalidad de revisar la calificación de ${subject}.</p>` +
+      `<p><a href="https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z">` +
+      "https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z" +
+      "</a></p>" +
+      "<p>Saludos,</p>";
+    const htmlForEmail = trimmedCustom
+      ? `<p>${String(trimmedCustom).replace(/\n/g, "<br />")}</p>`
+      : baseTemplateHtml;
 
     const icsContent = [
       "BEGIN:VCALENDAR",
@@ -114,7 +138,7 @@ export default async function handler(req, res) {
       `DTSTART;TZID=${TIMEZONE}:${dtStartLocal}`,
       `DTEND;TZID=${TIMEZONE}:${dtEndLocal}`,
       `SUMMARY:${fullTitle}`,
-      `DESCRIPTION:${emailBody.replace(/\n/g, "\\n")}`,
+      `DESCRIPTION:${textForEmail.replace(/\n/g, "\\n")}`,
       `ORGANIZER;CN=Verum Committee:mailto:${EMAIL_USER}`,
       `ATTENDEE;CN=Diego Aguirre;ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${EMAIL_TO}`,
       "END:VEVENT",
@@ -134,6 +158,7 @@ export default async function handler(req, res) {
       to: EMAIL_TO,
       subject: fullTitle,
       text: textForEmail,
+      html: htmlForEmail,
       icalEvent: {
         filename: "invite.ics",
         method: "REQUEST",
