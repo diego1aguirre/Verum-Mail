@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { supabase } from "./lib/supabase";
 
 /** Subject = everything before the first "_" in the filename (e.g. "Actinver Fiduciario_Presentación...") */
 function subjectFromFilename(filename: string): string {
@@ -13,8 +14,6 @@ const MONTHS: Record<string, number> = {
   ene: 1, jan: 1, feb: 2, mar: 3, abr: 4, apr: 4, may: 5, jun: 6,
   jul: 7, ago: 8, aug: 8, sep: 9, oct: 10, nov: 11, dic: 12, dec: 12,
 };
-
-const DEFAULT_RECIPIENTS = ["diego1992aguirre@gmail.com"];
 
 /** Parse date from filename: "25.Oct.2019" or "Feb.23.2026" → yyyy-mm-dd */
 function dateFromFilename(filename: string): string {
@@ -48,43 +47,23 @@ function App() {
   const [time, setTime] = useState("");
   const [message, setMessage] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [recipients, setRecipients] = useState<string[]>([]);
+  const [recipients, setRecipients] = useState<{ id: string; email: string }[]>([]);
   const [newRecipient, setNewRecipient] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [view, setView] = useState<"compose" | "manage">("compose");
 
-  // Load saved recipients from localStorage
+  // Load recipients from Supabase on mount
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem("verum-mail-recipients");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setRecipients(parsed.filter((v) => typeof v === "string"));
-          return;
-        }
-      }
-      // If nothing stored, seed with default recipient list
-      setRecipients(DEFAULT_RECIPIENTS);
-      window.localStorage.setItem(
-        "verum-mail-recipients",
-        JSON.stringify(DEFAULT_RECIPIENTS)
-      );
-    } catch {
-      // ignore parse errors
-    }
+    supabase
+      .from("recipients")
+      .select("id, email")
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (data) setRecipients(data);
+      });
   }, []);
-
-  const persistRecipients = (next: string[]) => {
-    setRecipients(next);
-    try {
-      window.localStorage.setItem("verum-mail-recipients", JSON.stringify(next));
-    } catch {
-      // ignore storage errors
-    }
-  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -98,19 +77,29 @@ function App() {
     }
   };
 
-  const handleAddRecipient = () => {
+  const handleAddRecipient = async () => {
     const trimmed = newRecipient.trim();
     if (!trimmed) return;
-    if (recipients.includes(trimmed)) {
+    if (recipients.some((r) => r.email === trimmed)) {
       setNewRecipient("");
       return;
     }
-    persistRecipients([...recipients, trimmed]);
+    const { data, error } = await supabase
+      .from("recipients")
+      .insert({ email: trimmed })
+      .select("id, email")
+      .single();
+    if (!error && data) {
+      setRecipients((prev) => [...prev, data]);
+    }
     setNewRecipient("");
   };
 
-  const handleRemoveRecipient = (email: string) => {
-    persistRecipients(recipients.filter((r) => r !== email));
+  const handleRemoveRecipient = async (id: string) => {
+    const { error } = await supabase.from("recipients").delete().eq("id", id);
+    if (!error) {
+      setRecipients((prev) => prev.filter((r) => r.id !== id));
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -153,7 +142,7 @@ function App() {
             message: message.trim(),
             pdfBase64: base64,
             pdfFilename: pdfFile.name,
-            recipients,
+            recipients: recipients.map((r) => r.email),
           }),
         });
       } else {
@@ -163,7 +152,7 @@ function App() {
         formData.append("time", time);
         formData.append("message", message.trim());
         formData.append("pdf", pdfFile);
-        formData.append("recipients", JSON.stringify(recipients));
+        formData.append("recipients", JSON.stringify(recipients.map((r) => r.email)));
         response = await fetch(`${apiBase}/send-email`, {
           method: "POST",
           body: formData,
@@ -326,13 +315,13 @@ function App() {
                 <div className="field">
                   <span>Current recipients</span>
                   <ul className="recipient-list">
-                    {recipients.map((email) => (
-                      <li key={email} className="recipient-item">
-                        <span>{email}</span>
+                    {recipients.map((r) => (
+                      <li key={r.id} className="recipient-item">
+                        <span>{r.email}</span>
                         <button
                           type="button"
                           className="recipient-remove"
-                          onClick={() => handleRemoveRecipient(email)}
+                          onClick={() => handleRemoveRecipient(r.id)}
                         >
                           Delete
                         </button>
