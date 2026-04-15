@@ -53,8 +53,12 @@ function App() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [view, setView] = useState<"compose" | "manage">("compose");
+  const [meetingLink, setMeetingLink] = useState("");
+  const [newMeetingLink, setNewMeetingLink] = useState("");
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [linkSaved, setLinkSaved] = useState(false);
 
-  // Load recipients from Supabase on mount
+  // Load recipients and meeting link from Supabase on mount
   useEffect(() => {
     supabase
       .from("recipients")
@@ -63,7 +67,35 @@ function App() {
       .then(({ data }) => {
         if (data) setRecipients(data);
       });
+
+    supabase
+      .from("config")
+      .select("value")
+      .eq("key", "meeting_link")
+      .single()
+      .then(({ data }) => {
+        if (data?.value) {
+          setMeetingLink(data.value);
+          setNewMeetingLink(data.value);
+        }
+      });
   }, []);
+
+  const handleSaveMeetingLink = async () => {
+    const trimmed = newMeetingLink.trim();
+    if (!trimmed || trimmed === meetingLink) return;
+    setLinkSaving(true);
+    const { error } = await supabase
+      .from("config")
+      .update({ value: trimmed })
+      .eq("key", "meeting_link");
+    if (!error) {
+      setMeetingLink(trimmed);
+      setLinkSaved(true);
+      setTimeout(() => setLinkSaved(false), 2500);
+    }
+    setLinkSaving(false);
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -330,6 +362,32 @@ function App() {
                   </ul>
                 </div>
               )}
+
+              <hr className="section-divider" />
+
+              <div className="field">
+                <span>Meeting link</span>
+                <div className="field-grid">
+                  <input
+                    type="url"
+                    value={newMeetingLink}
+                    onChange={(e) => {
+                      setNewMeetingLink(e.target.value);
+                      setLinkSaved(false);
+                    }}
+                    placeholder="https://teams.live.com/meet/..."
+                  />
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={handleSaveMeetingLink}
+                    disabled={linkSaving || !newMeetingLink.trim() || newMeetingLink.trim() === meetingLink}
+                  >
+                    {linkSaving ? "Saving…" : "Save"}
+                  </button>
+                </div>
+                {linkSaved && <p className="success" style={{ marginTop: "0.5rem" }}>Link updated successfully.</p>}
+              </div>
             </div>
           </section>
         )}

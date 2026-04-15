@@ -1,4 +1,10 @@
 import nodemailer from "nodemailer";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_ANON_KEY
+);
 
 const EMAIL_TO = "diego1992aguirre@gmail.com";
 const TIMEZONE = "America/Mexico_City";
@@ -107,6 +113,13 @@ export default async function handler(req, res) {
     const fullTitle = `Comité de Calificación - ${subject}`;
     const trimmedCustom = customMessage && String(customMessage).trim();
 
+    const { data: configRow } = await supabase
+      .from("config")
+      .select("value")
+      .eq("key", "meeting_link")
+      .single();
+    const meetingLink = configRow?.value ?? "https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z";
+
     const baseTemplateTextMain =
       "Estimados miembros del comité\n\n" +
       `Los estamos convocando el próximo ${longDateEs}, a las ${formattedTime} ` +
@@ -114,7 +127,7 @@ export default async function handler(req, res) {
     const customBlock = trimmedCustom ? `\n\n${String(trimmedCustom)}` : "";
     const teamsText =
       "\n\nReunión de Microsoft Teams\n" +
-      "Unirse: https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z\n" +
+      `Unirse: ${meetingLink}\n` +
       "Saludos,";
     const textForEmail = `${baseTemplateTextMain}${customBlock}${teamsText}`;
 
@@ -127,9 +140,7 @@ export default async function handler(req, res) {
       : "";
     const teamsHtml =
       `<p style="font-size:15pt;font-weight:bold;">Reunión de Microsoft Teams<br />` +
-      `Unirse: <a href="https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z">` +
-      "https://teams.live.com/meet/9330207434019?p=11pDHEIX4Cep47Qc3Z" +
-      "</a></p>" +
+      `Unirse: <a href="${meetingLink}">${meetingLink}</a></p>` +
       "<p>Saludos,</p>";
     const htmlForEmail = `${baseHtmlMain}${customHtml}${teamsHtml}`;
 
